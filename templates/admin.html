@@ -1,0 +1,233 @@
+﻿{% extends "base.html" %}
+{% block title %}管理后台 - LabReserve{% endblock %}
+{% block content %}
+
+<div class="tabs" id="adminTabs">
+  <button class="tab-btn active" onclick="switchTab(this,'tabEq')">设备管理</button>
+  <button class="tab-btn" onclick="switchTab(this,'tabRv')">预约审批 <span class="badge" style="background:#ff7675;color:#fff" id="pendingCount"></span></button>
+  <button class="tab-btn" onclick="switchTab(this,'tabDm')">报损记录</button>
+</div>
+
+<!-- 设备管理 -->
+<div class="tab-pane active" id="tabEq">
+  <div class="flex-between mb-2">
+    <h3 style="font-weight:600">🖥 设备管理 ({{ equipment|length }} 台)</h3>
+    <button class="btn btn-primary btn-sm" id="btnAddEq">＋ 添加设备</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>名称</th><th>型号</th><th>分类</th><th>位置</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for eq in equipment %}
+        <tr>
+          <td>{{ eq.id }}</td>
+          <td>{{ eq.name }}</td>
+          <td>{{ eq.model }}</td>
+          <td>{{ eq.category }}</td>
+          <td>{{ eq.location }}</td>
+          <td><span class="badge badge-{% if eq.status=='available' %}success{% elif eq.status=='in_use' %}warning{% elif eq.status=='maintenance' %}info{% else %}danger{% endif %}">
+            {% if eq.status == 'available' %}可预约{% elif eq.status == 'in_use' %}使用中{% elif eq.status == 'maintenance' %}维护中{% else %}已损坏{% endif %}
+          </span></td>
+          <td>
+            <button class="btn btn-outline btn-sm btn-edit-eq" data-id="{{ eq.id }}" data-name="{{ eq.name|e }}" data-model="{{ eq.model|e }}" data-category="{{ eq.category|e }}" data-location="{{ eq.location|e }}" data-status="{{ eq.status }}" data-description="{{ eq.description|e }}">编辑</button>
+            <button class="btn btn-danger btn-sm btn-del-eq" data-id="{{ eq.id }}">删除</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 预约审批 -->
+<div class="tab-pane" id="tabRv">
+  <h3 class="mb-2" style="font-weight:600">📋 预约审批</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>设备</th><th>借用人</th><th>用途</th><th>开始</th><th>结束</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for r in reservations %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td><strong>{{ r.equipment_name }}</strong></td>
+          <td>{{ r.user_name }}</td>
+          <td>{{ r.purpose or '-' }}</td>
+          <td><small>{{ r.start_time[:16] }}</small></td>
+          <td><small>{{ r.end_time[:16] }}</small></td>
+          <td>
+            {% if r.status == 'pending' %}<span class="badge badge-warning">待审批</span>
+            {% elif r.status == 'approved' %}<span class="badge badge-success">已通过</span>
+            {% elif r.status == 'rejected' %}<span class="badge badge-danger">已拒绝</span>
+            {% elif r.status == 'cancelled' %}<span class="badge badge-secondary">已取消</span>
+            {% elif r.status == 'completed' %}<span class="badge badge-info">已完成</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.status == 'pending' %}
+            <button class="btn btn-success btn-sm btn-approve" data-id="{{ r.id }}" data-action="approve">通过</button>
+            <button class="btn btn-danger btn-sm btn-approve" data-id="{{ r.id }}" data-action="reject">拒绝</button>
+            {% elif r.status == 'approved' %}
+            <button class="btn btn-info btn-sm btn-complete" data-id="{{ r.id }}">完成归还</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 报损记录 -->
+<div class="tab-pane" id="tabDm">
+  <h3 class="mb-2" style="font-weight:600">⚠ 报损记录</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ID</th><th>设备</th><th>报损人</th><th>描述</th><th>严重程度</th><th>时间</th></tr></thead>
+      <tbody>
+        {% for d in damage_reports %}
+        <tr>
+          <td>{{ d.id }}</td>
+          <td>{{ d.equipment_name }}</td>
+          <td>{{ d.reporter }}</td>
+          <td>{{ d.description }}</td>
+          <td>
+            {% if d.severity == 'minor' %}<span class="badge badge-warning">轻微</span>
+            {% elif d.severity == 'major' %}<span class="badge" style="background:#e17055;color:#fff">严重</span>
+            {% else %}<span class="badge badge-danger">致命</span>{% endif %}
+          </td>
+          <td><small>{{ d.created_at[:16] }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  // 待审批数量
+  var pending = document.querySelectorAll('#tabRv .badge-warning').length;
+  var pc = document.getElementById('pendingCount');
+  if (pc && pending) pc.textContent = pending;
+
+  // ── 添加设备 ────────────────────────────────────
+  document.getElementById('btnAddEq').addEventListener('click', function(){
+    var body = 
+      '<div class="form-group"><label class="form-label">名称 <span class="text-danger">*</span></label><input class="form-control" id="addName" required></div>' +
+      '<div class="form-group"><label class="form-label">型号</label><input class="form-control" id="addModel"></div>' +
+      '<div class="form-group"><label class="form-label">分类</label><input class="form-control" id="addCategory"></div>' +
+      '<div class="form-group"><label class="form-label">位置</label><input class="form-control" id="addLocation"></div>' +
+      '<div class="form-group"><label class="form-label">描述</label><textarea class="form-control" id="addDesc" rows="3"></textarea></div>';
+    var footer = '<button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-primary" id="addEqSubmit">添加</button>';
+    openModal('＋ 添加设备', body, footer);
+
+    document.getElementById('addEqSubmit').addEventListener('click', async function(){
+      var fd = new FormData();
+      fd.append('name', document.getElementById('addName').value);
+      fd.append('model', document.getElementById('addModel').value);
+      fd.append('category', document.getElementById('addCategory').value);
+      fd.append('location', document.getElementById('addLocation').value);
+      fd.append('description', document.getElementById('addDesc').value);
+      try {
+        var resp = await fetch('/api/equipment', { method:'POST', body:fd });
+        if (resp.ok) { location.reload(); }
+        else { var r = await resp.json(); showToast(r.error || '添加失败', 'danger'); }
+      } catch(e) { showToast('网络错误', 'danger'); }
+    });
+  });
+
+  // ── 编辑设备 ────────────────────────────────────
+  document.querySelectorAll('.btn-edit-eq').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var d = btn.dataset;
+      var body =
+        '<input type="hidden" id="editId" value="' + d.id + '">' +
+        '<div class="form-group"><label class="form-label">名称</label><input class="form-control" id="editName" value="' + escapeHtml(d.name) + '"></div>' +
+        '<div class="form-group"><label class="form-label">型号</label><input class="form-control" id="editModel" value="' + escapeHtml(d.model) + '"></div>' +
+        '<div class="form-group"><label class="form-label">分类</label><input class="form-control" id="editCategory" value="' + escapeHtml(d.category) + '"></div>' +
+        '<div class="form-group"><label class="form-label">位置</label><input class="form-control" id="editLocation" value="' + escapeHtml(d.location) + '"></div>' +
+        '<div class="form-group"><label class="form-label">状态</label><select class="form-control" id="editStatus"><option value="available"' + (d.status==='available'?' selected':'') + '>可预约</option><option value="in_use"' + (d.status==='in_use'?' selected':'') + '>使用中</option><option value="maintenance"' + (d.status==='maintenance'?' selected':'') + '>维护中</option><option value="damaged"' + (d.status==='damaged'?' selected':'') + '>已损坏</option></select></div>' +
+        '<div class="form-group"><label class="form-label">描述</label><textarea class="form-control" id="editDesc" rows="3">' + escapeHtml(d.description) + '</textarea></div>';
+      var footer = '<button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-info" id="editEqSubmit">保存</button>';
+      openModal('✏ 编辑设备', body, footer);
+
+      document.getElementById('editEqSubmit').addEventListener('click', async function(){
+        var fd = new FormData();
+        fd.append('name', document.getElementById('editName').value);
+        fd.append('model', document.getElementById('editModel').value);
+        fd.append('category', document.getElementById('editCategory').value);
+        fd.append('location', document.getElementById('editLocation').value);
+        fd.append('status', document.getElementById('editStatus').value);
+        fd.append('description', document.getElementById('editDesc').value);
+        try {
+          var resp = await fetch('/api/equipment/' + document.getElementById('editId').value, { method:'PUT', body:fd });
+          if (resp.ok) { location.reload(); }
+          else { var r = await resp.json(); showToast(r.error || '编辑失败', 'danger'); }
+        } catch(e) { showToast('网络错误', 'danger'); }
+      });
+    });
+  });
+
+  // ── 删除设备 ────────────────────────────────────
+  document.querySelectorAll('.btn-del-eq').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      if (!confirm('确认删除设备 #' + btn.dataset.id + '？此操作不可恢复。')) return;
+      try {
+        var resp = await fetch('/api/equipment/' + btn.dataset.id, { method:'DELETE' });
+        if (resp.ok) { location.reload(); }
+        else { var r = await resp.json(); showToast(r.error || '删除失败', 'danger'); }
+      } catch(e) { showToast('网络错误', 'danger'); }
+    });
+  });
+
+  // ── 审批 ────────────────────────────────────────
+  document.querySelectorAll('.btn-approve').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      var id = btn.dataset.id;
+      var action = btn.dataset.action;
+      var comment = '';
+      if (action === 'reject') {
+        comment = prompt('拒绝理由（可选）：') || '';
+        if (comment === null) return; // user cancelled
+      }
+      var fd = new FormData();
+      fd.append('action', action);
+      fd.append('comment', comment);
+      try {
+        var resp = await fetch('/api/approve/' + id, { method:'POST', body:fd });
+        var result = await resp.json();
+        if (resp.ok) {
+          location.reload();
+        } else {
+          var msg = result.error || '操作失败';
+          if (result.conflicts && result.conflicts.length) {
+            msg += ' | 冲突: ' + result.conflicts.map(function(c){ return c.user_name; }).join(', ');
+          }
+          alert(msg);
+        }
+      } catch(e) { showToast('网络错误', 'danger'); }
+    });
+  });
+
+  // ── 完成归还 ────────────────────────────────────
+  document.querySelectorAll('.btn-complete').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      if (!confirm('确认该设备已归还？')) return;
+      try {
+        var resp = await fetch('/api/reservations/' + btn.dataset.id + '/complete', { method:'POST' });
+        if (resp.ok) { location.reload(); }
+        else { var r = await resp.json(); showToast(r.error || '操作失败', 'danger'); }
+      } catch(e) { showToast('网络错误', 'danger'); }
+    });
+  });
+
+  function escapeHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+})();
+</script>
+{% endblock %}

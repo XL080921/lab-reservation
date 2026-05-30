@@ -1,0 +1,296 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}实验室设备预约系统{% endblock %}</title>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   LabReserve — 自包含样式 (无外部依赖)
+   ═══════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC",sans-serif;background:#f5f6fa;color:#2d3436;line-height:1.6;min-height:100vh}
+a{color:#0984e3;text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Navbar */
+.navbar{background:linear-gradient(135deg,#0984e3,#6c5ce7);padding:0 20px;display:flex;align-items:center;height:56px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:100}
+.navbar-brand{font-size:1.25rem;font-weight:700;color:#fff;text-decoration:none;margin-right:auto}
+.navbar-brand:hover{text-decoration:none}
+.navbar-links{display:flex;gap:4px;align-items:center}
+.navbar-links a,.navbar-links span{color:rgba(255,255,255,.85);padding:6px 14px;border-radius:6px;font-size:.9rem;transition:all .15s;text-decoration:none}
+.navbar-links a:hover{background:rgba(255,255,255,.15);text-decoration:none;color:#fff}
+.navbar .badge{background:#ff7675;color:#fff;border-radius:10px;padding:1px 7px;font-size:.75rem;margin-left:4px}
+
+/* Container */
+.container{max-width:1200px;margin:0 auto;padding:24px 20px}
+
+/* Alerts */
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:.9rem;display:flex;justify-content:space-between;align-items:center;animation:fadeIn .3s}
+.alert-success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+.alert-danger{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+.alert-warning{background:#fff3cd;color:#856404;border:1px solid #ffeaa7}
+.alert-info{background:#d1ecf1;color:#0c5460;border:1px solid #bee5eb}
+.alert-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:inherit;opacity:.7;line-height:1}
+.alert-close:hover{opacity:1}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:4px;padding:7px 16px;border:1px solid transparent;border-radius:6px;font-size:.875rem;cursor:pointer;transition:all .15s;font-family:inherit;text-decoration:none;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary{background:#0984e3;color:#fff;border-color:#0984e3}
+.btn-primary:hover{background:#0773c5}
+.btn-success{background:#00b894;color:#fff;border-color:#00b894}
+.btn-success:hover{background:#00a381}
+.btn-danger{background:#ff7675;color:#fff;border-color:#ff7675}
+.btn-danger:hover{background:#e66767}
+.btn-warning{background:#fdcb6e;color:#2d3436;border-color:#fdcb6e}
+.btn-secondary{background:#b2bec3;color:#2d3436;border-color:#b2bec3}
+.btn-info{background:#00cec9;color:#fff;border-color:#00cec9}
+.btn-outline{background:transparent;border-color:#b2bec3;color:#636e72}
+.btn-outline:hover{background:#dfe6e9}
+.btn-sm{padding:4px 10px;font-size:.8rem}
+.btn-lg{padding:10px 24px;font-size:1rem}
+.btn-block{display:block;width:100%;justify-content:center}
+
+/* Cards */
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid #eee;font-weight:600;background:#fafbfc}
+.card-body{padding:18px}
+.card-footer{padding:14px 18px;border-top:1px solid #eee;background:#fafbfc}
+
+/* Grid */
+.row{display:flex;flex-wrap:wrap;margin:0 -10px}
+.col-3{flex:0 0 25%;max-width:25%;padding:0 10px}
+.col-4{flex:0 0 33.333%;max-width:33.333%;padding:0 10px}
+.col-6{flex:0 0 50%;max-width:50%;padding:0 10px}
+.col-12{flex:0 0 100%;max-width:100%;padding:0 10px}
+@media(max-width:768px){.col-3,.col-4,.col-6{flex:0 0 100%;max-width:100%}}
+
+/* Tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eee}
+th{background:#fafbfc;font-weight:600;color:#636e72;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px}
+tr:hover{background:#f8f9ff}
+.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.75rem;font-weight:600;line-height:1.6}
+.badge-success{background:#d4edda;color:#155724}
+.badge-warning{background:#fff3cd;color:#856404}
+.badge-danger{background:#f8d7da;color:#721c24}
+.badge-info{background:#d1ecf1;color:#0c5460}
+.badge-primary{background:#d6e4ff;color:#1a56db}
+.badge-secondary{background:#eee;color:#636e72}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:2px solid #eee;margin-bottom:20px;gap:0}
+.tab-btn{padding:10px 20px;border:none;background:none;cursor:pointer;font-size:.9rem;color:#636e72;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;font-family:inherit}
+.tab-btn:hover{color:#2d3436}
+.tab-btn.active{color:#0984e3;border-bottom-color:#0984e3;font-weight:600}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* Forms */
+.form-group{margin-bottom:16px}
+.form-label{display:block;margin-bottom:4px;font-weight:500;font-size:.875rem;color:#2d3436}
+.form-control{width:100%;padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:.9rem;font-family:inherit;transition:border-color .15s;background:#fff}
+.form-control:focus{outline:none;border-color:#0984e3;box-shadow:0 0 0 3px rgba(9,132,227,.15)}
+.form-control:disabled{background:#f5f6fa;color:#b2bec3}
+textarea.form-control{resize:vertical;min-height:80px}
+select.form-control{appearance:auto}
+.form-inline{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.form-row{display:flex;gap:12px}
+.form-row>*{flex:1}
+.text-danger{color:#ff7675}
+.text-muted{color:#b2bec3;font-size:.85rem}
+
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.modal-box{background:#fff;border-radius:12px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:slideUp .25s}
+.modal-box.modal-lg{max-width:700px}
+.modal-header{padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{margin:0;font-size:1.1rem}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:8px}
+.modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:#b2bec3;line-height:1}
+.modal-close:hover{color:#2d3436}
+
+/* Toast */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:8px;color:#fff;font-size:.9rem;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:slideIn .3s;max-width:360px}
+.toast-success{background:#00b894}
+.toast-danger{background:#ff7675}
+.toast-warning{background:#fdcb6e;color:#2d3436}
+
+/* Spinner */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+.spinner-dark{border-color:rgba(0,0,0,.1);border-top-color:#0984e3}
+.text-center{text-align:center}
+
+/* Equipment grid */
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.eq-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #eee;transition:all .2s}
+.eq-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.eq-card.available{border-left-color:#00b894}
+.eq-card.in_use{border-left-color:#fdcb6e}
+.eq-card.maintenance{border-left-color:#0984e3}
+.eq-card.damaged{border-left-color:#ff7675}
+.eq-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.eq-card-title{font-size:1rem;font-weight:600;margin:0}
+.eq-card-meta{font-size:.8rem;color:#b2bec3;margin-bottom:8px}
+.eq-card-desc{font-size:.85rem;color:#636e72;margin-bottom:12px}
+.eq-card-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Search bar */
+.search-bar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{flex:1;min-width:200px;padding:8px 14px;border:1px solid #dcdde1;border-radius:6px;font-size:.9rem;font-family:inherit}
+.search-input:focus{outline:none;border-color:#0984e3;box-shadow:0 0 0 3px rgba(9,132,227,.15)}
+.filter-group{display:flex;gap:4px}
+
+/* Stats cards */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{border-radius:10px;padding:24px;color:#fff;text-align:center}
+.stat-card.primary{background:linear-gradient(135deg,#0984e3,#6c5ce7)}
+.stat-card.success{background:linear-gradient(135deg,#00b894,#00cec9)}
+.stat-card.info{background:linear-gradient(135deg,#74b9ff,#a29bfe)}
+.stat-card.dark{background:linear-gradient(135deg,#2d3436,#636e72)}
+.stat-card h2{margin:0;font-size:2rem;font-weight:700}
+.stat-card p{margin:4px 0 0;opacity:.8;font-size:.85rem}
+
+/* Calendar bars */
+.calendar-bar{display:flex;align-items:center;padding:8px 12px;margin:4px 0;border-radius:6px;font-size:.85rem;gap:8px;flex-wrap:wrap}
+.calendar-bar.approved{background:#d4edda;border-left:3px solid #00b894}
+.calendar-bar.pending{background:#fff3cd;border-left:3px solid #fdcb6e}
+.calendar-bar .cal-user{font-weight:600}
+.calendar-bar .cal-time{color:#636e72;font-size:.8rem}
+
+/* Progress bar */
+.progress{height:6px;background:#eee;border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-bar{height:100%;border-radius:3px;transition:width .3s}
+.progress-success{background:#00b894}
+.progress-warning{background:#fdcb6e}
+.progress-info{background:#0984e3}
+.progress-danger{background:#ff7675}
+
+/* Utilities */
+.mb-1{margin-bottom:8px}
+.mb-2{margin-bottom:12px}
+.mb-3{margin-bottom:16px}
+.mb-4{margin-bottom:24px}
+.mt-2{margin-top:12px}
+.mt-4{margin-top:24px}
+.mr-2{margin-right:8px}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.gap-2{gap:8px}
+.hidden{display:none!important}
+.py-4{padding-top:24px;padding-bottom:24px}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  .eq-grid{grid-template-columns:1fr}
+  .navbar{padding:0 12px}
+  .navbar-links a,.navbar-links span{padding:4px 8px;font-size:.8rem}
+  .modal-box{width:95%;max-width:95%}
+  .form-row{flex-direction:column}
+  .stat-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a class="navbar-brand" href="/">&#x1F9EA; LabReserve</a>
+  <div class="navbar-links">
+    <a href="/">&#x25A6; 设备列表</a>
+    <a href="/stats">&#x1F4CA; 使用统计</a>
+    {% if session.is_admin %}
+    <a href="/admin">&#x1F6E1; 管理后台</a>
+    <span>👤 {{ session.admin_name }}</span>
+    <a href="/logout">退出</a>
+    {% else %}
+    <a href="/login">🔑 管理员登录</a>
+    {% endif %}
+  </div>
+</nav>
+
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">
+        <span>{{ message }}</span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Global modal container -->
+<div id="modalContainer"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  LabReserve — 自包含 JS (无外部依赖)
+// ═══════════════════════════════════════════════════════════
+
+// ── Toast 通知 ──────────────────────────────────────
+function showToast(msg, type) {
+  type = type || 'success';
+  var container = document.getElementById('toastContainer');
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(function(){ el.remove(); }, 3000);
+}
+
+// ── Modal 弹窗 ──────────────────────────────────────
+function openModal(title, content, footer, large) {
+  var container = document.getElementById('modalContainer');
+  var html = '<div class="modal-overlay" id="currentModal">';
+  html += '<div class="modal-box' + (large ? ' modal-lg' : '') + '">';
+  html += '<div class="modal-header"><h3>' + title + '</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>';
+  html += '<div class="modal-body">' + content + '</div>';
+  if (footer) html += '<div class="modal-footer">' + footer + '</div>';
+  html += '</div></div>';
+  container.innerHTML = html;
+  // Close on overlay click
+  document.getElementById('currentModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+}
+
+function closeModal() {
+  document.getElementById('modalContainer').innerHTML = '';
+}
+
+function getModalBody() {
+  var el = document.querySelector('#currentModal .modal-body');
+  return el;
+}
+
+// ── Escape key closes modal ────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ── 开关 Tab ───────────────────────────────────────
+function switchTab(btn, targetId) {
+  btn.parentElement.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var pane = document.getElementById(targetId);
+  pane.parentElement.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
+  pane.classList.add('active');
+}
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

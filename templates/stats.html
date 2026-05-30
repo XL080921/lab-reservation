@@ -1,0 +1,59 @@
+﻿{% extends "base.html" %}
+{% block title %}使用统计 - LabReserve{% endblock %}
+{% block content %}
+<h2 class="mb-3" style="font-weight:600">📊 使用统计</h2>
+
+<div class="stat-grid">
+  <div class="stat-card primary">
+    <h2>{{ total_eq }}</h2><p>设备总数</p>
+  </div>
+  <div class="stat-card success">
+    <h2>{{ month_reservations }}</h2><p>本月预约</p>
+  </div>
+  <div class="stat-card info">
+    <h2>{{ approve_rate }}%</h2><p>审批通过率</p>
+  </div>
+  <div class="stat-card dark">
+    {% set dam = damage_count|selectattr("severity","equalto","critical")|list %}
+    <h2>{{ dam[0].cnt if dam else 0 }}</h2><p>致命报损</p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-6">
+    <div class="card mb-3">
+      <div class="card-header">📊 设备状态分布</div>
+      <div class="card-body">
+        <table>
+          {% for s in status_count %}
+          <tr>
+            <td>
+              {% if s.status == 'available' %}🟢 可预约
+              {% elif s.status == 'in_use' %}🟡 使用中
+              {% elif s.status == 'maintenance' %}🔵 维护中
+              {% else %}🔴 已损坏{% endif %}
+            </td>
+            <td><strong>{{ s.cnt }}</strong> 台</td>
+            <td style="width:100%">
+              <div class="progress"><div class="progress-bar progress-{{ 'success' if s.status=='available' else 'warning' if s.status=='in_use' else 'info' if s.status=='maintenance' else 'danger' }}" style="width:{{ (s.cnt / total_eq * 100)|round }}%"></div></div>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-6">
+    <div class="card mb-3">
+      <div class="card-header">🏆 设备使用排行</div>
+      <div class="card-body">
+        <table>
+          {% for e in top_equipment %}
+          <tr><td>{{ loop.index }}</td><td>{{ e.name }}</td><td><span class="badge badge-primary">{{ e.cnt }} 次</span></td></tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

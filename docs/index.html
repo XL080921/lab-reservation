@@ -1,0 +1,516 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LabReserve - 实验室设备预约系统</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans SC",sans-serif;background:#f5f6fa;color:#2d3436;line-height:1.6;min-height:100vh}
+a{color:#0984e3;text-decoration:none}
+.navbar{background:linear-gradient(135deg,#0984e3,#6c5ce7);padding:0 20px;display:flex;align-items:center;height:56px;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);position:sticky;top:0;z-index:100}
+.navbar-brand{font-size:1.25rem;font-weight:700;color:#fff;text-decoration:none;margin-right:auto;cursor:pointer}
+.navbar-links{display:flex;gap:4px;align-items:center}
+.navbar-links a,.navbar-links span{color:rgba(255,255,255,.85);padding:6px 14px;border-radius:6px;font-size:.9rem;transition:.15s;text-decoration:none;cursor:pointer}
+.navbar-links a:hover,.navbar-links span:hover{background:rgba(255,255,255,.15);color:#fff}
+.container{max-width:1200px;margin:0 auto;padding:24px 20px}
+.alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:.9rem;display:flex;justify-content:space-between;align-items:center}
+.alert-success{background:#d4edda;color:#155724;border:1px solid #c3e6cb}
+.alert-danger{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb}
+.alert-warning{background:#fff3cd;color:#856404;border:1px solid #ffeaa7}
+.alert-info{background:#d1ecf1;color:#0c5460;border:1px solid #bee5eb}
+.alert-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:inherit;opacity:.7}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:7px 16px;border:1px solid transparent;border-radius:6px;font-size:.875rem;cursor:pointer;transition:.15s;font-family:inherit;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary{background:#0984e3;color:#fff;border-color:#0984e3}
+.btn-success{background:#00b894;color:#fff}
+.btn-danger{background:#ff7675;color:#fff}
+.btn-warning{background:#fdcb6e;color:#2d3436}
+.btn-secondary{background:#b2bec3;color:#2d3436}
+.btn-info{background:#00cec9;color:#fff}
+.btn-outline{background:transparent;border:1px solid #b2bec3;color:#636e72}
+.btn-outline:hover{background:#dfe6e9}
+.btn-sm{padding:4px 10px;font-size:.8rem}
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid #eee;font-weight:600;background:#fafbfc}
+.card-body{padding:18px}
+.row{display:flex;flex-wrap:wrap;margin:0 -10px}
+.col-6{flex:0 0 50%;max-width:50%;padding:0 10px}
+@media(max-width:768px){.col-6{flex:0 0 100%;max-width:100%}}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid #eee}
+th{background:#fafbfc;font-weight:600;color:#636e72;font-size:.8rem;text-transform:uppercase}
+tr:hover{background:#f8f9ff}
+.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:.75rem;font-weight:600}
+.badge-success{background:#d4edda;color:#155724}
+.badge-warning{background:#fff3cd;color:#856404}
+.badge-danger{background:#f8d7da;color:#721c24}
+.badge-info{background:#d1ecf1;color:#0c5460}
+.badge-primary{background:#d6e4ff;color:#1a56db}
+.badge-secondary{background:#eee;color:#636e72}
+.tabs{display:flex;border-bottom:2px solid #eee;margin-bottom:20px}
+.tab-btn{padding:10px 20px;border:none;background:none;cursor:pointer;font-size:.9rem;color:#636e72;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;font-family:inherit}
+.tab-btn:hover{color:#2d3436}
+.tab-btn.active{color:#0984e3;border-bottom-color:#0984e3;font-weight:600}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.form-group{margin-bottom:16px}
+.form-label{display:block;margin-bottom:4px;font-weight:500;font-size:.875rem}
+.form-control{width:100%;padding:8px 12px;border:1px solid #dcdde1;border-radius:6px;font-size:.9rem;font-family:inherit;transition:.15s;background:#fff}
+.form-control:focus{outline:none;border-color:#0984e3;box-shadow:0 0 0 3px rgba(9,132,227,.15)}
+textarea.form-control{resize:vertical;min-height:80px}
+select.form-control{appearance:auto}
+.form-row{display:flex;gap:12px}
+.form-row>*{flex:1}
+.text-danger{color:#ff7675}
+.text-muted{color:#b2bec3;font-size:.85rem}
+.text-center{text-align:center}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.modal-box{background:#fff;border-radius:12px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:slideUp .25s}
+.modal-box.modal-lg{max-width:700px}
+.modal-header{padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{margin:0;font-size:1.1rem}
+.modal-body{padding:20px}
+.modal-footer{padding:12px 20px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:8px}
+.modal-close{background:none;border:none;font-size:1.5rem;cursor:pointer;color:#b2bec3}
+.modal-close:hover{color:#2d3436}
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:8px;color:#fff;font-size:.9rem;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:slideIn .3s;max-width:360px}
+.toast-success{background:#00b894}
+.toast-danger{background:#ff7675}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+.spinner-dark{border-color:rgba(0,0,0,.1);border-top-color:#0984e3}
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.eq-card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #eee;transition:.2s}
+.eq-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1)}
+.eq-card.available{border-left-color:#00b894}
+.eq-card.in_use{border-left-color:#fdcb6e}
+.eq-card.maintenance{border-left-color:#0984e3}
+.eq-card.damaged{border-left-color:#ff7675}
+.eq-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.eq-card-title{font-size:1rem;font-weight:600;margin:0}
+.eq-card-meta{font-size:.8rem;color:#b2bec3;margin-bottom:8px}
+.eq-card-desc{font-size:.85rem;color:#636e72;margin-bottom:12px}
+.eq-card-actions{display:flex;gap:8px;flex-wrap:wrap}
+.search-bar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{flex:1;min-width:200px;padding:8px 14px;border:1px solid #dcdde1;border-radius:6px;font-size:.9rem;font-family:inherit}
+.search-input:focus{outline:none;border-color:#0984e3;box-shadow:0 0 0 3px rgba(9,132,227,.15)}
+.filter-group{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{border-radius:10px;padding:24px;color:#fff;text-align:center}
+.stat-card.primary{background:linear-gradient(135deg,#0984e3,#6c5ce7)}
+.stat-card.success{background:linear-gradient(135deg,#00b894,#00cec9)}
+.stat-card.info{background:linear-gradient(135deg,#74b9ff,#a29bfe)}
+.stat-card.dark{background:linear-gradient(135deg,#2d3436,#636e72)}
+.stat-card h2{margin:0;font-size:2rem;font-weight:700}
+.calendar-bar{display:flex;align-items:center;padding:8px 12px;margin:4px 0;border-radius:6px;font-size:.85rem;gap:8px;flex-wrap:wrap}
+.calendar-bar.approved{background:#d4edda;border-left:3px solid #00b894}
+.calendar-bar.pending{background:#fff3cd;border-left:3px solid #fdcb6e}
+.progress{height:6px;background:#eee;border-radius:3px;overflow:hidden}
+.progress-bar{height:100%;border-radius:3px}
+.progress-success{background:#00b894}.progress-warning{background:#fdcb6e}.progress-info{background:#0984e3}.progress-danger{background:#ff7675}
+.mb-1{margin-bottom:8px}.mb-2{margin-bottom:12px}.mb-3{margin-bottom:16px}.mb-4{margin-bottom:24px}.mt-2{margin-top:12px}
+.flex-between{display:flex;justify-content:space-between;align-items:center}.hidden{display:none!important}.py-4{padding:24px 0}
+.table-wrap{overflow-x:auto}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.eq-grid{grid-template-columns:1fr}.navbar{padding:0 12px}.navbar-links a,.navbar-links span{padding:4px 8px;font-size:.8rem}.modal-box{width:95%}.form-row{flex-direction:column}.stat-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <span class="navbar-brand" onclick="navigate('home')">&#x1F9EA; LabReserve</span>
+  <div class="navbar-links">
+    <span onclick="navigate('home')">&#x25A6; 设备列表</span>
+    <span onclick="navigate('stats')">&#x1F4CA; 使用统计</span>
+    <span id="navAdmin" onclick="navigate('admin')" style="display:none">&#x1F6E1; 管理后台</span>
+    <span id="navLogin" onclick="showLogin()">&#x1F511; 管理员登录</span>
+    <span id="navLogout" onclick="logout()" style="display:none">退出</span>
+  </div>
+</nav>
+<div class="container" id="app"></div>
+<div class="toast-container" id="toastContainer"></div>
+<div id="modalContainer"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  数据层 — localStorage 持久化
+// ═══════════════════════════════════════════════════════════
+const DB = {
+  _init(){
+    if(!localStorage.getItem('lab_equipment')){
+      localStorage.setItem('lab_equipment', JSON.stringify([
+        {id:1,name:"示波器 TDS2024C",model:"TDS2024C",category:"电子测量",location:"A101实验室",status:"available",description:"4通道数字存储示波器，200MHz"},
+        {id:2,name:"信号发生器 AFG31000",model:"AFG31000",category:"电子测量",location:"A101实验室",status:"available",description:"任意波形发生器"},
+        {id:3,name:"万用表 Fluke 87V",model:"Fluke 87V",category:"电子测量",location:"A102实验室",status:"available",description:"高精度数字万用表"},
+        {id:4,name:"3D打印机 Ultimaker S5",model:"Ultimaker S5",category:"制造设备",location:"B201实验室",status:"available",description:"双喷头FDM打印机"},
+        {id:5,name:"激光切割机",model:"LC-1390",category:"制造设备",location:"B202实验室",status:"available",description:"CO2激光切割机，100W"},
+        {id:6,name:"高速离心机",model:"Sorvall LYNX 6000",category:"生物设备",location:"C301实验室",status:"available",description:"最高转速29000rpm"},
+        {id:7,name:"PCR仪",model:"ProFlex 3x32",category:"生物设备",location:"C302实验室",status:"available",description:"三模块PCR扩增仪"},
+        {id:8,name:"光谱分析仪",model:"AQ6370D",category:"光学设备",location:"D101实验室",status:"available",description:"600-1700nm光谱分析"}
+      ]));
+      localStorage.setItem('lab_reservations', JSON.stringify([]));
+      localStorage.setItem('lab_approvals', JSON.stringify([]));
+      localStorage.setItem('lab_damage_reports', JSON.stringify([]));
+      localStorage.setItem('lab_next_id', '9');
+    }
+  },
+  eq(){ return JSON.parse(localStorage.getItem('lab_equipment')||'[]'); },
+  saveEq(data){ localStorage.setItem('lab_equipment', JSON.stringify(data)); },
+  rv(){ return JSON.parse(localStorage.getItem('lab_reservations')||'[]'); },
+  saveRv(data){ localStorage.setItem('lab_reservations', JSON.stringify(data)); },
+  apr(){ return JSON.parse(localStorage.getItem('lab_approvals')||'[]'); },
+  saveApr(data){ localStorage.setItem('lab_approvals', JSON.stringify(data)); },
+  dm(){ return JSON.parse(localStorage.getItem('lab_damage_reports')||'[]'); },
+  saveDm(data){ localStorage.setItem('lab_damage_reports', JSON.stringify(data)); },
+  nextId(){ var n=parseInt(localStorage.getItem('lab_next_id')||'9'); localStorage.setItem('lab_next_id', String(n+1)); return n; },
+  getAdmin(){ return localStorage.getItem('lab_admin')==='1'; },
+  setAdmin(v){ v?localStorage.setItem('lab_admin','1'):localStorage.removeItem('lab_admin'); },
+  reset(){ localStorage.removeItem('lab_equipment'); localStorage.removeItem('lab_reservations'); localStorage.removeItem('lab_approvals'); localStorage.removeItem('lab_damage_reports'); localStorage.removeItem('lab_next_id'); this._init(); }
+};
+DB._init();
+
+// ═══════════════════════════════════════════════════════════
+//  UI 工具
+// ═══════════════════════════════════════════════════════════
+function showToast(msg, type){
+  var c=document.getElementById('toastContainer');
+  var el=document.createElement('div');
+  el.className='toast toast-'+(type||'success');
+  el.textContent=msg;
+  c.appendChild(el);
+  setTimeout(function(){el.remove()},3000);
+}
+function openModal(title, body, footer, large){
+  var c=document.getElementById('modalContainer');
+  c.innerHTML='<div class="modal-overlay" id="cm"><div class="modal-box'+(large?' modal-lg':'')+'"><div class="modal-header"><h3>'+title+'</h3><button class="modal-close" onclick="closeModal()">&times;</button></div><div class="modal-body">'+body+'</div>'+(footer?'<div class="modal-footer">'+footer+'</div>':'')+'</div></div>';
+  document.getElementById('cm').addEventListener('click',function(e){if(e.target===this)closeModal();});
+}
+function closeModal(){document.getElementById('modalContainer').innerHTML='';}
+function getModalBody(){return document.querySelector('#cm .modal-body');}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+function switchTab(btn,tid){
+  btn.parentElement.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  var pane=document.getElementById(tid);
+  pane.parentElement.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+  pane.classList.add('active');
+}
+function escHtml(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function fmtTime(t){return t?t.replace('T',' ').substring(0,16):'';}
+
+//冲突检测
+function checkConflict(eqId, start, end, excludeId){
+  var rvs=DB.rv();
+  return rvs.filter(function(r){
+    return r.equipment_id===eqId && (r.status==='pending'||r.status==='approved') && r.start_time < end && r.end_time > start && r.id!==excludeId;
+  });
+}
+
+//导航
+var currentPage='';
+function navigate(page){
+  currentPage=page;
+  updateNav();
+  if(page==='home') renderHome();
+  else if(page==='stats') renderStats();
+  else if(page==='admin'){ if(DB.getAdmin()) renderAdmin(); else showLogin(); }
+}
+function updateNav(){
+  var isAdmin=DB.getAdmin();
+  document.getElementById('navLogin').style.display=isAdmin?'none':'';
+  document.getElementById('navLogout').style.display=isAdmin?'':'none';
+  document.getElementById('navAdmin').style.display=isAdmin?'':'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  页面渲染
+// ═══════════════════════════════════════════════════════════
+function renderHome(){
+  var eqs=DB.eq();
+  var h='<div class="flex-between mb-3"><h2 style="font-weight:600">&#x25A6; 设备列表</h2><div class="search-bar" style="margin-bottom:0"><input type="text" id="searchBox" class="search-input" placeholder="搜索设备名称 / 分类 / 位置..."></div></div>';
+  h+='<div class="filter-group"><button class="btn btn-sm btn-primary filter-btn active" data-filter="all">全部</button><button class="btn btn-sm btn-outline filter-btn" data-filter="available">可预约</button><button class="btn btn-sm btn-outline filter-btn" data-filter="in_use">使用中</button><button class="btn btn-sm btn-outline filter-btn" data-filter="maintenance">维护中</button><button class="btn btn-sm btn-outline filter-btn" data-filter="damaged">已损坏</button></div>';
+  h+='<div class="eq-grid">';
+  eqs.forEach(function(eq){
+    var sb=eq.status==='available'?'success':eq.status==='in_use'?'warning':eq.status==='maintenance'?'info':'danger';
+    var sl=eq.status==='available'?'可预约':eq.status==='in_use'?'使用中':eq.status==='maintenance'?'维护中':'已损坏';
+    h+='<div class="eq-card '+eq.status+'" data-status="'+eq.status+'" data-keywords="'+escHtml(eq.name+' '+eq.category+' '+eq.location+' '+eq.model)+'">';
+    h+='<div class="eq-card-header"><h3 class="eq-card-title">'+escHtml(eq.name)+'</h3><span class="badge badge-'+sb+'">'+sl+'</span></div>';
+    h+='<div class="eq-card-meta">'+(eq.model?'型号: '+escHtml(eq.model)+' &nbsp;':'')+'&#x1F4C1; '+(eq.category||'-')+' &nbsp; &#x1F4CD; '+(eq.location||'-')+'</div>';
+    if(eq.description) h+='<div class="eq-card-desc">'+escHtml(eq.description)+'</div>';
+    h+='<div class="eq-card-actions">';
+    h+='<button class="btn btn-primary btn-sm btn-reserve" data-id="'+eq.id+'" data-name="'+escHtml(eq.name)+'"'+(eq.status!=='available'?' disabled':'')+'>&#x1F4C5; 预约</button>';
+    h+='<button class="btn btn-outline btn-sm btn-calendar" data-id="'+eq.id+'" data-name="'+escHtml(eq.name)+'">&#x1F4CB; 查看排期</button>';
+    h+='<button class="btn btn-danger btn-sm btn-damage" data-id="'+eq.id+'" data-name="'+escHtml(eq.name)+'">&#x26A0; 报损</button>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  if(eqs.length===0) h='<div class="text-center py-4 text-muted"><p style="font-size:3rem">&#x1F4ED;</p><p>暂无设备，请先添加</p></div>';
+  document.getElementById('app').innerHTML=h;
+  bindHomeEvents();
+}
+
+function bindHomeEvents(){
+  //搜索
+  var sb=document.getElementById('searchBox');
+  var fbs=document.querySelectorAll('.filter-btn');
+  function getFilter(){var a=document.querySelector('.filter-btn.btn-primary');return a?a.dataset.filter:'all';}
+  function filterEq(){
+    var kw=(sb?sb.value:'').toLowerCase();
+    var f=getFilter();
+    document.querySelectorAll('.eq-card').forEach(function(c){
+      c.style.display=(f==='all'||c.dataset.status===f)&&(!kw||c.dataset.keywords.toLowerCase().indexOf(kw)>=0)?'':'none';
+    });
+  }
+  if(sb) sb.addEventListener('input',filterEq);
+  fbs.forEach(function(b){b.addEventListener('click',function(){fbs.forEach(function(x){x.className='btn btn-sm btn-outline filter-btn';});b.className='btn btn-sm btn-primary filter-btn active';filterEq();});});
+
+  //预约
+  document.querySelectorAll('.btn-reserve').forEach(function(btn){btn.addEventListener('click',function(){
+    var id=parseInt(btn.dataset.id), name=btn.dataset.name;
+    var body='<input type="hidden" id="rvEqId" value="'+id+'"><div class="form-group"><strong>'+name+'</strong></div>'+
+      '<div class="form-group"><label class="form-label">借用人姓名 <span class="text-danger">*</span></label><input class="form-control" id="rvUser" required></div>'+
+      '<div class="form-group"><label class="form-label">使用目的</label><input class="form-control" id="rvPurpose"></div>'+
+      '<div class="form-row"><div class="form-group"><label class="form-label">开始时间 <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" id="rvStart" required></div>'+
+      '<div class="form-group"><label class="form-label">结束时间 <span class="text-danger">*</span></label><input type="datetime-local" class="form-control" id="rvEnd" required></div></div>'+
+      '<div id="rvAlert" class="hidden"></div>';
+    openModal('&#x1F4C5; 预约设备', body, '<button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-primary" id="rvSubmit">提交预约申请</button>');
+    document.getElementById('rvSubmit').addEventListener('click',function(){
+      var b=this;b.disabled=true;b.textContent='提交中...';
+      var eqId=parseInt(document.getElementById('rvEqId').value);
+      var user=document.getElementById('rvUser').value.trim();
+      var purpose=document.getElementById('rvPurpose').value.trim();
+      var start=document.getElementById('rvStart').value;
+      var end=document.getElementById('rvEnd').value;
+      var alert=document.getElementById('rvAlert');
+      if(!user){alert.className='alert alert-danger';alert.textContent='请输入借用人姓名';alert.style.display='';b.disabled=false;b.textContent='提交预约申请';return;}
+      if(!start||!end){alert.className='alert alert-danger';alert.textContent='请填写预约时间';alert.style.display='';b.disabled=false;b.textContent='提交预约申请';return;}
+      if(start>=end){alert.className='alert alert-danger';alert.textContent='开始时间必须早于结束时间';alert.style.display='';b.disabled=false;b.textContent='提交预约申请';return;}
+      var eqs=DB.eq();var eq=eqs.find(function(e){return e.id===eqId;});
+      if(!eq||eq.status==='maintenance'||eq.status==='damaged'){alert.className='alert alert-danger';alert.textContent='该设备当前不可预约';alert.style.display='';b.disabled=false;b.textContent='提交预约申请';return;}
+      var cf=checkConflict(eqId,start,end,null);
+      if(cf.length){alert.className='alert alert-danger';alert.textContent='该时间段已被预约 | 冲突: '+cf.map(function(c){return c.user_name+' '+fmtTime(c.start_time)+'~'+fmtTime(c.end_time)}).join(', ');alert.style.display='';b.disabled=false;b.textContent='提交预约申请';return;}
+      var rvs=DB.rv();
+      rvs.push({id:DB.nextId(),equipment_id:eqId,user_name:user,purpose:purpose,start_time:start,end_time:end,status:'pending',created_at:new Date().toISOString()});
+      DB.saveRv(rvs);
+      showToast('预约申请已提交，等待管理员审批','success');
+      setTimeout(function(){closeModal();renderHome();},1000);
+    });
+  });});
+
+  //排期
+  document.querySelectorAll('.btn-calendar').forEach(function(btn){btn.addEventListener('click',function(){
+    var id=parseInt(btn.dataset.id),name=btn.dataset.name;
+    openModal('&#x1F4CB; 排期 - '+name,'<div class="text-center py-4"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;margin:0 auto"></div><p class="text-muted mt-2">加载中...</p></div>','<button class="btn btn-secondary" onclick="closeModal()">关闭</button>',true);
+    var rvs=DB.rv().filter(function(r){return r.equipment_id===id&&(r.status==='pending'||r.status==='approved');}).sort(function(a,b){return a.start_time.localeCompare(b.start_time);});
+    var body=document.querySelector('#cm .modal-body');
+    if(!rvs.length) body.innerHTML='<div class="text-center py-4 text-muted"><p style="font-size:2rem">&#x1F4ED;</p><p>暂无预约记录</p></div>';
+    else body.innerHTML=rvs.map(function(r){return '<div class="calendar-bar '+r.status+'"><span style="font-weight:600">'+escHtml(r.user_name)+'</span><span>'+(r.purpose||'(无说明)')+'</span><span class="text-muted" style="margin-left:auto;font-size:.8rem">'+fmtTime(r.start_time)+' \u2192 '+fmtTime(r.end_time)+'</span><span class="badge '+(r.status==='approved'?'badge-success':'badge-warning')+'">'+(r.status==='approved'?'已通过':'待审批')+'</span></div>';}).join('');
+  });});
+
+  //报损
+  document.querySelectorAll('.btn-damage').forEach(function(btn){btn.addEventListener('click',function(){
+    var id=parseInt(btn.dataset.id),name=btn.dataset.name;
+    var body='<input type="hidden" id="dmEqId" value="'+id+'"><div class="form-group"><strong>'+name+'</strong></div>'+
+      '<div class="form-group"><label class="form-label">报损人 <span class="text-danger">*</span></label><input class="form-control" id="dmReporter" required></div>'+
+      '<div class="form-group"><label class="form-label">损坏描述 <span class="text-danger">*</span></label><textarea class="form-control" id="dmDesc" rows="3" required></textarea></div>'+
+      '<div class="form-group"><label class="form-label">严重程度</label><select class="form-control" id="dmSeverity"><option value="minor">轻微</option><option value="major">严重</option><option value="critical">致命</option></select></div>';
+    openModal('&#x26A0; 设备报损', body, '<button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-danger" id="dmSubmit">提交报损</button>');
+    document.getElementById('dmSubmit').addEventListener('click',function(){
+      var b=this;b.disabled=true;b.textContent='提交中...';
+      var eqId=parseInt(document.getElementById('dmEqId').value);
+      var reporter=document.getElementById('dmReporter').value.trim();
+      var desc=document.getElementById('dmDesc').value.trim();
+      var sev=document.getElementById('dmSeverity').value;
+      if(!reporter||!desc){showToast('请填写完整信息','danger');b.disabled=false;b.textContent='提交报损';return;}
+      var dms=DB.dm();
+      dms.push({id:DB.nextId(),equipment_id:eqId,reservation_id:null,reporter:reporter,description:desc,severity:sev,created_at:new Date().toISOString()});
+      DB.saveDm(dms);
+      var eqs=DB.eq();var eq=eqs.find(function(e){return e.id===eqId;});if(eq)eq.status='damaged';DB.saveEq(eqs);
+      showToast('报损已提交','success');
+      setTimeout(function(){closeModal();renderHome();},1000);
+    });
+  });});
+}
+
+// ── 统计页 ─────────────────────────────────────────
+function renderStats(){
+  var eqs=DB.eq(), rvs=DB.rv(), dms=DB.dm();
+  var total=eqs.length;
+  var sc={};eqs.forEach(function(e){sc[e.status]=(sc[e.status]||0)+1;});
+  var now=new Date();var ms=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
+  var monthRv=rvs.filter(function(r){return r.created_at>=ms;}).length;
+  var tr=rvs.filter(function(r){return r.status==='approved'||r.status==='rejected';}).length;
+  var ap=rvs.filter(function(r){return r.status==='approved';}).length;
+  var ar=tr?Math.round(ap/tr*100*10)/10:0;
+  var top={};rvs.filter(function(r){return r.status==='approved';}).forEach(function(r){top[r.equipment_id]=(top[r.equipment_id]||0)+1;});
+  var topList=Object.keys(top).map(function(k){var e=eqs.find(function(x){return x.id===parseInt(k);});return{name:e?e.name:'未知',cnt:top[k]};}).sort(function(a,b){return b.cnt-a.cnt;});
+  eqs.forEach(function(e){if(!top[e.id])topList.push({name:e.name,cnt:0});});
+  var dmc={};dms.forEach(function(d){dmc[d.severity]=(dmc[d.severity]||0)+1;});
+
+  var h='<h2 class="mb-3" style="font-weight:600">&#x1F4CA; 使用统计</h2>';
+  h+='<div class="stat-grid"><div class="stat-card primary"><h2>'+total+'</h2><p>设备总数</p></div><div class="stat-card success"><h2>'+monthRv+'</h2><p>本月预约</p></div><div class="stat-card info"><h2>'+ar+'%</h2><p>审批通过率</p></div><div class="stat-card dark"><h2>'+(dmc['critical']||0)+'</h2><p>致命报损</p></div></div>';
+  h+='<div class="row"><div class="col-6"><div class="card mb-3"><div class="card-header">&#x1F4CA; 设备状态分布</div><div class="card-body"><table>';
+  [{k:'available',l:'&#x1F7E2; 可预约',c:'success'},{k:'in_use',l:'&#x1F7E1; 使用中',c:'warning'},{k:'maintenance',l:'&#x1F535; 维护中',c:'info'},{k:'damaged',l:'&#x1F534; 已损坏',c:'danger'}].forEach(function(s){
+    var cnt=sc[s.k]||0;h+='<tr><td>'+s.l+'</td><td><strong>'+cnt+'</strong> 台</td><td style="width:100%"><div class="progress"><div class="progress-bar progress-'+s.c+'" style="width:'+(total?Math.round(cnt/total*100):0)+'%"></div></div></td></tr>';
+  });
+  h+='</table></div></div></div><div class="col-6"><div class="card mb-3"><div class="card-header">&#x1F3C6; 设备使用排行</div><div class="card-body"><table>';
+  topList.slice(0,10).forEach(function(e,i){h+='<tr><td>'+(i+1)+'</td><td>'+escHtml(e.name)+'</td><td><span class="badge badge-primary">'+e.cnt+' 次</span></td></tr>';});
+  h+='</table></div></div></div></div>';
+  document.getElementById('app').innerHTML=h;
+}
+
+// ── 管理后台 ───────────────────────────────────────
+function renderAdmin(){
+  var eqs=DB.eq(), rvs=DB.rv(), dms=DB.dm(), aprs=DB.apr();
+  var h='<div class="tabs"><button class="tab-btn active" onclick="switchTab(this,\'tabEq\')">设备管理</button><button class="tab-btn" onclick="switchTab(this,\'tabRv\')">预约审批 <span class="badge" style="background:#ff7675;color:#fff" id="pc">'+rvs.filter(function(r){return r.status==='pending';}).length+'</span></button><button class="tab-btn" onclick="switchTab(this,\'tabDm\')">报损记录</button></div>';
+
+  //设备管理
+  h+='<div class="tab-pane active" id="tabEq"><div class="flex-between mb-2"><h3 style="font-weight:600">&#x1F5A5; 设备管理 ('+eqs.length+' 台)</h3><button class="btn btn-primary btn-sm" id="btnAdd">＋ 添加设备</button></div><div class="table-wrap"><table><thead><tr><th>ID</th><th>名称</th><th>型号</th><th>分类</th><th>位置</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  eqs.forEach(function(eq){
+    var sb=eq.status==='available'?'success':eq.status==='in_use'?'warning':eq.status==='maintenance'?'info':'danger';
+    var sl=eq.status==='available'?'可预约':eq.status==='in_use'?'使用中':eq.status==='maintenance'?'维护中':'已损坏';
+    h+='<tr><td>'+eq.id+'</td><td>'+escHtml(eq.name)+'</td><td>'+escHtml(eq.model)+'</td><td>'+escHtml(eq.category)+'</td><td>'+escHtml(eq.location)+'</td><td><span class="badge badge-'+sb+'">'+sl+'</span></td><td><button class="btn btn-outline btn-sm btn-edit" data-id="'+eq.id+'">编辑</button> <button class="btn btn-danger btn-sm btn-del" data-id="'+eq.id+'">删除</button></td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+
+  //预约审批
+  h+='<div class="tab-pane" id="tabRv"><h3 class="mb-2" style="font-weight:600">&#x1F4CB; 预约审批</h3><div class="table-wrap"><table><thead><tr><th>ID</th><th>设备</th><th>借用人</th><th>用途</th><th>开始</th><th>结束</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  rvs.sort(function(a,b){return b.id-a.id;}).forEach(function(r){
+    var eq=eqs.find(function(e){return e.id===r.equipment_id;});
+    var sn=r.status==='pending'?'warning':r.status==='approved'?'success':r.status==='rejected'?'danger':r.status==='cancelled'?'secondary':'info';
+    var sl=r.status==='pending'?'待审批':r.status==='approved'?'已通过':r.status==='rejected'?'已拒绝':r.status==='cancelled'?'已取消':'已完成';
+    h+='<tr><td>'+r.id+'</td><td><strong>'+(eq?escHtml(eq.name):'-')+'</strong></td><td>'+escHtml(r.user_name)+'</td><td>'+(r.purpose||'-')+'</td><td><small>'+fmtTime(r.start_time)+'</small></td><td><small>'+fmtTime(r.end_time)+'</small></td><td><span class="badge badge-'+sn+'">'+sl+'</span></td><td>';
+    if(r.status==='pending') h+='<button class="btn btn-success btn-sm btn-apr" data-id="'+r.id+'" data-act="approve">通过</button> <button class="btn btn-danger btn-sm btn-apr" data-id="'+r.id+'" data-act="reject">拒绝</button>';
+    else if(r.status==='approved') h+='<button class="btn btn-info btn-sm btn-cmp" data-id="'+r.id+'">完成归还</button>';
+    h+='</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+
+  //报损记录
+  h+='<div class="tab-pane" id="tabDm"><h3 class="mb-2" style="font-weight:600">&#x26A0; 报损记录</h3><div class="table-wrap"><table><thead><tr><th>ID</th><th>设备</th><th>报损人</th><th>描述</th><th>严重程度</th><th>时间</th></tr></thead><tbody>';
+  dms.sort(function(a,b){return b.id-a.id;}).forEach(function(d){
+    var eq=eqs.find(function(e){return e.id===d.equipment_id;});
+    var sv=d.severity==='minor'?'warning':d.severity==='major'?'style=\"background:#e17055;color:#fff\"':'danger';
+    var sl=d.severity==='minor'?'轻微':d.severity==='major'?'严重':'致命';
+    h+='<tr><td>'+d.id+'</td><td>'+(eq?escHtml(eq.name):'-')+'</td><td>'+escHtml(d.reporter)+'</td><td>'+escHtml(d.description)+'</td><td><span class="badge badge-'+d.severity+'" '+(d.severity==='major'?'style="background:#e17055;color:#fff"':'')+'>'+sl+'</span></td><td><small>'+fmtTime(d.created_at)+'</small></td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+
+  document.getElementById('app').innerHTML=h;
+  bindAdminEvents();
+}
+
+function bindAdminEvents(){
+  //添加设备
+  document.getElementById('btnAdd').addEventListener('click',function(){
+    var body='<div class="form-group"><label class="form-label">名称 <span class="text-danger">*</span></label><input class="form-control" id="addName" required></div>'+
+      '<div class="form-group"><label class="form-label">型号</label><input class="form-control" id="addModel"></div>'+
+      '<div class="form-group"><label class="form-label">分类</label><input class="form-control" id="addCategory"></div>'+
+      '<div class="form-group"><label class="form-label">位置</label><input class="form-control" id="addLocation"></div>'+
+      '<div class="form-group"><label class="form-label">描述</label><textarea class="form-control" id="addDesc" rows="3"></textarea></div>';
+    openModal('＋ 添加设备', body, '<button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-primary" id="addSubmit">添加</button>');
+    document.getElementById('addSubmit').addEventListener('click',function(){
+      var name=document.getElementById('addName').value.trim();
+      if(!name){showToast('请输入设备名称','danger');return;}
+      var eqs=DB.eq();
+      eqs.push({id:DB.nextId(),name:name,model:document.getElementById('addModel').value.trim(),category:document.getElementById('addCategory').value.trim(),location:document.getElementById('addLocation').value.trim(),status:'available',description:document.getElementById('addDesc').value.trim()});
+      DB.saveEq(eqs);
+      showToast('设备已添加','success');
+      setTimeout(function(){closeModal();renderAdmin();},500);
+    });
+  });
+
+  //编辑设备
+  document.querySelectorAll('.btn-edit').forEach(function(btn){btn.addEventListener('click',function(){
+    var eqs=DB.eq();var eq=eqs.find(function(e){return e.id===parseInt(btn.dataset.id);});if(!eq)return;
+    var body='<input type="hidden" id="editId" value="'+eq.id+'">'+
+      '<div class="form-group"><label class="form-label">名称</label><input class="form-control" id="editName" value="'+escHtml(eq.name)+'"></div>'+
+      '<div class="form-group"><label class="form-label">型号</label><input class="form-control" id="editModel" value="'+escHtml(eq.model)+'"></div>'+
+      '<div class="form-group"><label class="form-label">分类</label><input class="form-control" id="editCategory" value="'+escHtml(eq.category)+'"></div>'+
+      '<div class="form-group"><label class="form-label">位置</label><input class="form-control" id="editLocation" value="'+escHtml(eq.location)+'"></div>'+
+      '<div class="form-group"><label class="form-label">状态</label><select class="form-control" id="editStatus"><option value="available"'+(eq.status==='available'?' selected':'')+'>可预约</option><option value="in_use"'+(eq.status==='in_use'?' selected':'')+'>使用中</option><option value="maintenance"'+(eq.status==='maintenance'?' selected':'')+'>维护中</option><option value="damaged"'+(eq.status==='damaged'?' selected':'')+'>已损坏</option></select></div>'+
+      '<div class="form-group"><label class="form-label">描述</label><textarea class="form-control" id="editDesc" rows="3">'+escHtml(eq.description)+'</textarea></div>';
+    openModal('✏ 编辑设备', body, '<button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-info" id="editSubmit">保存</button>');
+    document.getElementById('editSubmit').addEventListener('click',function(){
+      var id=parseInt(document.getElementById('editId').value);
+      var eqs=DB.eq();var eq=eqs.find(function(e){return e.id===id;});if(!eq)return;
+      eq.name=document.getElementById('editName').value.trim();
+      eq.model=document.getElementById('editModel').value.trim();
+      eq.category=document.getElementById('editCategory').value.trim();
+      eq.location=document.getElementById('editLocation').value.trim();
+      eq.status=document.getElementById('editStatus').value;
+      eq.description=document.getElementById('editDesc').value.trim();
+      DB.saveEq(eqs);
+      showToast('设备已更新','success');
+      setTimeout(function(){closeModal();renderAdmin();},500);
+    });
+  });});
+
+  //删除设备
+  document.querySelectorAll('.btn-del').forEach(function(btn){btn.addEventListener('click',function(){
+    if(!confirm('确认删除设备 #'+btn.dataset.id+'？'))return;
+    var eqs=DB.eq().filter(function(e){return e.id!==parseInt(btn.dataset.id);});
+    DB.saveEq(eqs);renderAdmin();showToast('设备已删除','success');
+  });});
+
+  //审批
+  document.querySelectorAll('.btn-apr').forEach(function(btn){btn.addEventListener('click',function(){
+    var id=parseInt(btn.dataset.id),act=btn.dataset.act;
+    var comment='';
+    if(act==='reject'){comment=prompt('拒绝理由（可选）：')||'';if(comment===null)return;}
+    var rvs=DB.rv();var r=rvs.find(function(x){return x.id===id;});if(!r)return;
+    if(act==='approve'){
+      var cf=checkConflict(r.equipment_id,r.start_time,r.end_time,id);
+      if(cf.length){alert('审批时检测到时间冲突: '+cf.map(function(c){return c.user_name;}).join(', '));return;}
+    }
+    r.status=act==='approve'?'approved':'rejected';
+    DB.saveRv(rvs);
+    var aprs=DB.apr();
+    aprs.push({id:DB.nextId(),reservation_id:id,admin_name:'管理员',action:act,comment:comment,created_at:new Date().toISOString()});
+    DB.saveApr(aprs);
+    if(act==='approve'){var eqs=DB.eq();var eq=eqs.find(function(e){return e.id===r.equipment_id;});if(eq)eq.status='in_use';DB.saveEq(eqs);}
+    renderAdmin();showToast(act==='approve'?'预约已通过':'预约已拒绝','success');
+  });});
+
+  //完成归还
+  document.querySelectorAll('.btn-cmp').forEach(function(btn){btn.addEventListener('click',function(){
+    if(!confirm('确认设备已归还？'))return;
+    var id=parseInt(btn.dataset.id);
+    var rvs=DB.rv();var r=rvs.find(function(x){return x.id===id;});if(!r)return;
+    r.status='completed';DB.saveRv(rvs);
+    var active=rvs.filter(function(x){return x.equipment_id===r.equipment_id&&(x.status==='approved'||x.status==='pending')&&x.id!==id;}).length;
+    if(!active){var eqs=DB.eq();var eq=eqs.find(function(e){return e.id===r.equipment_id;});if(eq)eq.status='available';DB.saveEq(eqs);}
+    renderAdmin();showToast('设备已归还','success');
+  });});
+}
+
+// ── 登录 / 退出 ────────────────────────────────────
+function showLogin(){
+  openModal('&#x1F511; 管理员登录',
+    '<div class="form-group"><label class="form-label">管理员密码</label><input type="password" class="form-control" id="loginPw" placeholder="请输入管理员密码" required></div><p class="text-muted text-center mt-2">默认密码: admin123</p>',
+    '<button class="btn btn-secondary" onclick="closeModal()">取消</button><button class="btn btn-primary" id="loginSubmit">登录</button>');
+  document.getElementById('loginSubmit').addEventListener('click',function(){
+    var pw=document.getElementById('loginPw').value;
+    if(pw==='admin123'){DB.setAdmin(true);closeModal();updateNav();navigate('admin');showToast('管理员登录成功','success');}
+    else showToast('密码错误','danger');
+  });
+  document.getElementById('loginPw').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('loginSubmit').click();});
+}
+
+function logout(){
+  if(confirm('确认退出登录？')){DB.setAdmin(false);updateNav();navigate('home');showToast('已退出登录','info');}
+}
+
+// ── 启动 ──────────────────────────────────────────
+updateNav();
+navigate('home');
+
+//数据重置(开发用)
+//DB.reset();location.reload();
+</script>
+</body>
+</html>

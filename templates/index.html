@@ -1,0 +1,220 @@
+﻿{% extends "base.html" %}
+{% block title %}设备列表 - LabReserve{% endblock %}
+{% block content %}
+
+<div class="flex-between mb-3">
+  <h2 style="font-weight:600">&#x25A6; 设备列表</h2>
+  <div class="search-bar" style="margin-bottom:0">
+    <input type="text" id="searchBox" class="search-input" placeholder="搜索设备名称 / 分类 / 位置...">
+  </div>
+</div>
+
+<div class="filter-group mb-3">
+  <button class="btn btn-sm btn-primary filter-btn active" data-filter="all">全部</button>
+  <button class="btn btn-sm btn-outline filter-btn" data-filter="available">可预约</button>
+  <button class="btn btn-sm btn-outline filter-btn" data-filter="in_use">使用中</button>
+  <button class="btn btn-sm btn-outline filter-btn" data-filter="maintenance">维护中</button>
+  <button class="btn btn-sm btn-outline filter-btn" data-filter="damaged">已损坏</button>
+</div>
+
+<div class="eq-grid" id="eqGrid">
+  {% for eq in equipment %}
+  <div class="eq-card {{ eq.status }}" data-status="{{ eq.status }}" data-keywords="{{ eq.name }} {{ eq.category }} {{ eq.location }} {{ eq.model }}">
+    <div class="eq-card-header">
+      <h3 class="eq-card-title">{{ eq.name }}</h3>
+      <span class="badge badge-{% if eq.status=='available' %}success{% elif eq.status=='in_use' %}warning{% elif eq.status=='maintenance' %}info{% else %}danger{% endif %}">
+        {% if eq.status == 'available' %}可预约{% elif eq.status == 'in_use' %}使用中{% elif eq.status == 'maintenance' %}维护中{% else %}已损坏{% endif %}
+      </span>
+    </div>
+    <div class="eq-card-meta">
+      {% if eq.model %}型号: {{ eq.model }} &nbsp;{% endif %}
+      📁 {{ eq.category or '-' }} &nbsp; 📍 {{ eq.location or '-' }}
+    </div>
+    {% if eq.description %}<div class="eq-card-desc">{{ eq.description }}</div>{% endif %}
+    <div class="eq-card-actions">
+      <button class="btn btn-primary btn-sm btn-reserve" data-id="{{ eq.id }}" data-name="{{ eq.name|e }}" {% if eq.status != 'available' %}disabled{% endif %}>📅 预约</button>
+      <button class="btn btn-outline btn-sm btn-calendar" data-id="{{ eq.id }}" data-name="{{ eq.name|e }}">📋 查看排期</button>
+      <button class="btn btn-danger btn-sm btn-damage" data-id="{{ eq.id }}" data-name="{{ eq.name|e }}">⚠ 报损</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Toast container moved to base, inline scripts here -->
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  // ── 搜索 & 筛选 ──────────────────────────────
+  var searchBox = document.getElementById('searchBox');
+  var filterBtns = document.querySelectorAll('.filter-btn');
+
+  function getActiveFilter() {
+    var active = document.querySelector('.filter-btn.btn-primary');
+    return active ? active.dataset.filter : 'all';
+  }
+
+  function filterEquipment() {
+    var keyword = (searchBox ? searchBox.value : '').toLowerCase();
+    var filter = getActiveFilter();
+    document.querySelectorAll('.eq-card').forEach(function(card){
+      var mf = filter === 'all' || card.dataset.status === filter;
+      var ms = !keyword || card.dataset.keywords.toLowerCase().indexOf(keyword) >= 0;
+      card.style.display = (mf && ms) ? '' : 'none';
+    });
+  }
+
+  if (searchBox) searchBox.addEventListener('input', filterEquipment);
+
+  filterBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      filterBtns.forEach(function(b){ b.className = 'btn btn-sm btn-outline filter-btn'; });
+      btn.className = 'btn btn-sm btn-primary filter-btn active';
+      filterEquipment();
+    });
+  });
+
+  // ── 预约弹窗 ──────────────────────────────────
+  document.querySelectorAll('.btn-reserve').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.dataset.id;
+      var name = btn.dataset.name;
+      var body = 
+        '<input type="hidden" id="rvEqId" value="' + id + '">' +
+        '<div class="form-group"><strong>' + name + '</strong></div>' +
+        '<div class="form-group"><label class="form-label">借用人姓名 <span class="text-danger">*</span></label>' +
+        '<input class="form-control" id="rvUser" placeholder="请输入您的姓名" required></div>' +
+        '<div class="form-group"><label class="form-label">使用目的</label>' +
+        '<input class="form-control" id="rvPurpose" placeholder="例如：毕业设计实验"></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">开始时间 <span class="text-danger">*</span></label>' +
+        '<input type="datetime-local" class="form-control" id="rvStart" required></div>' +
+        '<div class="form-group"><label class="form-label">结束时间 <span class="text-danger">*</span></label>' +
+        '<input type="datetime-local" class="form-control" id="rvEnd" required></div>' +
+        '</div>' +
+        '<div id="rvAlert" class="hidden"></div>';
+      var footer = 
+        '<button class="btn btn-secondary" onclick="closeModal()">取消</button>' +
+        '<button class="btn btn-primary" id="rvSubmit">提交预约申请</button>';
+      openModal('📅 预约设备', body, footer);
+
+      document.getElementById('rvSubmit').addEventListener('click', async function(){
+        var btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> 提交中...';
+
+        var fd = new FormData();
+        fd.append('equipment_id', document.getElementById('rvEqId').value);
+        fd.append('user_name', document.getElementById('rvUser').value.trim());
+        fd.append('purpose', document.getElementById('rvPurpose').value.trim());
+        fd.append('start_time', document.getElementById('rvStart').value);
+        fd.append('end_time', document.getElementById('rvEnd').value);
+
+        try {
+          var resp = await fetch('/api/reservations', { method:'POST', body:fd });
+          var result = await resp.json();
+          var alert = document.getElementById('rvAlert');
+          if (resp.ok) {
+            alert.className = 'alert alert-success';
+            alert.textContent = result.message || '预约申请已提交';
+            alert.style.display = '';
+            setTimeout(function(){ location.reload(); }, 2000);
+          } else {
+            alert.className = 'alert alert-danger';
+            var msg = result.error || '提交失败';
+            if (result.conflicts && result.conflicts.length) {
+              msg += ' | 冲突: ' + result.conflicts.map(function(c){ return c.user_name + ' ' + c.start_time + '~' + c.end_time; }).join(', ');
+            }
+            alert.textContent = msg;
+            alert.style.display = '';
+          }
+        } catch(e) {
+          showToast('网络错误，请重试', 'danger');
+        }
+        btn.disabled = false;
+        btn.textContent = '提交预约申请';
+      });
+    });
+  });
+
+  // ── 查看排期弹窗 ──────────────────────────────
+  document.querySelectorAll('.btn-calendar').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      var id = btn.dataset.id;
+      var name = btn.dataset.name;
+      openModal('📋 排期 - ' + name, 
+        '<div class="text-center py-4"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;margin:0 auto"></div><p class="text-muted mt-2">加载中...</p></div>',
+        '<button class="btn btn-secondary" onclick="closeModal()">关闭</button>',
+        true);
+
+      try {
+        var resp = await fetch('/api/calendar/' + id);
+        var data = await resp.json();
+        var bodyEl = getModalBody();
+        if (!data || data.length === 0) {
+          bodyEl.innerHTML = '<div class="text-center py-4 text-muted"><p style="font-size:2rem">📭</p><p>暂无预约记录</p></div>';
+        } else {
+          bodyEl.innerHTML = data.map(function(r){
+            return '<div class="calendar-bar ' + r.status + '">' +
+              '<span class="cal-user">' + r.user_name + '</span>' +
+              '<span>' + (r.purpose || '(无说明)') + '</span>' +
+              '<span class="cal-time" style="margin-left:auto">' + r.start_time.replace('T',' ') + ' → ' + r.end_time.replace('T',' ') + '</span>' +
+              '<span class="badge ' + (r.status === 'approved' ? 'badge-success' : 'badge-warning') + '">' +
+                (r.status === 'approved' ? '已通过' : '待审批') + '</span>' +
+              '</div>';
+          }).join('');
+        }
+      } catch(e) {
+        getModalBody().innerHTML = '<div class="alert alert-danger">加载失败，请重试</div>';
+      }
+    });
+  });
+
+  // ── 报损弹窗 ──────────────────────────────────
+  document.querySelectorAll('.btn-damage').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.dataset.id;
+      var name = btn.dataset.name;
+      var body = 
+        '<input type="hidden" id="dmEqId" value="' + id + '">' +
+        '<div class="form-group"><strong>' + name + '</strong></div>' +
+        '<div class="form-group"><label class="form-label">报损人 <span class="text-danger">*</span></label>' +
+        '<input class="form-control" id="dmReporter" required></div>' +
+        '<div class="form-group"><label class="form-label">损坏描述 <span class="text-danger">*</span></label>' +
+        '<textarea class="form-control" id="dmDesc" rows="3" required></textarea></div>' +
+        '<div class="form-group"><label class="form-label">严重程度</label>' +
+        '<select class="form-control" id="dmSeverity">' +
+        '<option value="minor">轻微</option><option value="major">严重</option><option value="critical">致命</option></select></div>';
+      var footer = 
+        '<button class="btn btn-secondary" onclick="closeModal()">取消</button>' +
+        '<button class="btn btn-danger" id="dmSubmit">提交报损</button>';
+      openModal('⚠ 设备报损', body, footer);
+
+      document.getElementById('dmSubmit').addEventListener('click', async function(){
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = '提交中...';
+        var fd = new FormData();
+        fd.append('equipment_id', document.getElementById('dmEqId').value);
+        fd.append('reporter', document.getElementById('dmReporter').value.trim());
+        fd.append('description', document.getElementById('dmDesc').value.trim());
+        fd.append('severity', document.getElementById('dmSeverity').value);
+        try {
+          var resp = await fetch('/api/damage', { method:'POST', body:fd });
+          if (resp.ok) {
+            showToast('报损已提交', 'success');
+            setTimeout(function(){ location.reload(); }, 1500);
+          } else {
+            var r = await resp.json();
+            showToast(r.error || '报损失败', 'danger');
+          }
+        } catch(e) { showToast('网络错误', 'danger'); }
+        btn.disabled = false;
+        btn.textContent = '提交报损';
+      });
+    });
+  });
+
+})();
+</script>
+{% endblock %}
